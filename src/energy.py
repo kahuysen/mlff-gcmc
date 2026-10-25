@@ -15,7 +15,7 @@ def load_framework(cif_path):
     symbols = atoms.get_chemical_symbols()
     cell = atoms.cell.lengths()
     assert np.allclose(cell, cell[0]), f"cel is niet kubisch: {cell}"
-    masses_dict = {"Zn": 65.38, "C": 14, "O":16, "H":2 }
+    masses_dict = {"Zn": 65.38, "C": 12, "O":15.999, "H":1.008 }
     masses = np.array([masses_dict[symbol] for symbol in symbols])
     return positions, symbols, cell[0], masses, atoms
 
