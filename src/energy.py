@@ -9,14 +9,17 @@ import ase.io
 
 
 def load_framework(cif_path):
-    """Lees een CIF en geef (positions [N,3], symbols [N], L) terug. Alleen kubische cellen."""
+    """Lees een CIF en geef (positions [N,3], symbols [N], L, masses [N] in u) terug.
+
+    Alleen kubische cellen.
+    """
     atoms = ase.io.read(cif_path, format="cif")
     positions = atoms.get_positions()
     symbols = atoms.get_chemical_symbols()
     cell = atoms.cell.lengths()
     assert np.allclose(cell, cell[0]), f"cel is niet kubisch: {cell}"
-    masses = np.sum(atoms.get_masses())
-    return positions, symbols, cell[0], masses, atoms
+    masses = atoms.get_masses()
+    return positions, symbols, cell[0], masses
 
 
 def load_force_field(ff_path, elements=("O_", "C_", "H_", "Zn_")):
