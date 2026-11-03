@@ -1,0 +1,10 @@
+numpy>=2.0
+scipy>=1.14
+matplotlib>=3.9
+ase>=3.24
+jupyter
+nbconvert
+nbformat
+# Only for regenerating the MACE dataset on a GPU (see hpc/):
+# mace-torch>=0.3.17
+# torch-dftd>=0.5
