@@ -1,12 +1,11 @@
-"""Grand-canonical Monte Carlo van CH4 (united atom) in een rigide MOF met het baseline-krachtveld.
+"""Grand-canonical Monte Carlo of CH4 (united atom) in a rigid MOF with the baseline force field.
 
-Frenkel & Smit 3e ed. par. 6.5 (algoritmen 17-19). mu, V en T liggen vast, N fluctueert;
-de belading is <N>. Per stap een move met een random getal u: u < 1/3 verplaatsen,
-1/3 <= u < 2/3 invoegen, anders verwijderen. Acceptatie met een tweede random getal.
+Frenkel & Smit 3rd ed. section 6.5 (algorithms 17-19). mu, V and T are fixed, N fluctuates;
+the loading is <N>. Each step picks a move with one random number u: u < 1/3 translate,
+1/3 <= u < 2/3 insert, otherwise delete. Acceptance with a second random number.
 
-Energieverschillen zijn lokaal: alleen de roosterterm van het bewogen/ingevoegde/verwijderde
-molecuul plus zijn LJ-paren met de andere CH4's. Eenheden: energie in K, afstanden in A,
-f in Pa, V in m^3.
+Energy differences are local: only the framework term of the moved/inserted/deleted molecule
+plus its LJ pairs with the other CH4 molecules. Units: energy in K, distances in A, f in Pa, V in m^3.
 """
 
 import numpy as np
@@ -17,15 +16,15 @@ from widom import AVOGADRO, U_TO_KG
 K_B = 1.380649e-23  # J/K
 R = 8.31446261815324  # J/(mol K)
 
-CH4_EPS = 158.5  # K, Martin et al. 2001 (zie data/force_field/methane.json)
+CH4_EPS = 158.5  # K, Martin et al. 2001 (see data/force_field/methane.json)
 CH4_SIGMA = 3.72  # A
 CUTOFF = 12.0  # A
 
 
 def energy_of_molecule(ch4_position, others, positions, eps_pair, sigma_pair, L):
-    """Energie [K] van een CH4 op ch4_position: rooster plus LJ met de CH4's in others.
+    """Energy [K] of a CH4 at ch4_position: framework plus LJ with the CH4 molecules in others.
 
-    others bevat NIET het molecuul zelf (lege array (0, 3) als er geen andere zijn).
+    others must NOT contain the molecule itself (empty (0, 3) array if there are no others).
     """
     framework = energy_fast(ch4_position, positions, eps_pair, sigma_pair, L, cutoff_distance=CUTOFF)
     if len(others) == 0:
@@ -37,7 +36,7 @@ def energy_of_molecule(ch4_position, others, positions, eps_pair, sigma_pair, L)
 
 
 def try_translate(index, ch4_positions, positions, eps_pair, sigma_pair, L, T, max_displacement, rng):
-    """Verplaats molecuul index uniform in [-d, d]^3, wrap in de cel. Geeft (nieuwe positie, geaccepteerd, dU)."""
+    """Move molecule index uniformly in [-d, d]^3, wrap into the cell. Returns (new position, accepted, dU)."""
     old = ch4_positions[index]
     others = np.delete(ch4_positions, index, axis=0)
     new = (old + rng.uniform(-max_displacement, max_displacement, size=3)) % L
@@ -49,7 +48,7 @@ def try_translate(index, ch4_positions, positions, eps_pair, sigma_pair, L, T, m
 
 
 def try_insert(ch4_positions, positions, eps_pair, sigma_pair, L, T, f, rng):
-    """Voeg een CH4 in op een uniforme positie. acc = min(1, fV/((N+1)kT) exp(-dU/T))."""
+    """Insert a CH4 at a uniform position. acc = min(1, fV/((N+1)kT) exp(-dU/T))."""
     new = rng.uniform(0.0, L, size=3)
     dU = energy_of_molecule(new, ch4_positions, positions, eps_pair, sigma_pair, L)
     N = len(ch4_positions)
@@ -60,7 +59,7 @@ def try_insert(ch4_positions, positions, eps_pair, sigma_pair, L, T, f, rng):
 
 
 def try_delete(ch4_positions, positions, eps_pair, sigma_pair, L, T, f, rng):
-    """Verwijder een willekeurig CH4. acc = min(1, NkT/(fV) exp(-dU/T)) met dU = -U_i."""
+    """Delete a random CH4. acc = min(1, NkT/(fV) exp(-dU/T)) with dU = -U_i."""
     N = len(ch4_positions)
     if N == 0:
         return None, False, 0.0
@@ -76,11 +75,11 @@ def try_delete(ch4_positions, positions, eps_pair, sigma_pair, L, T, f, rng):
 def run_gcmc(
     positions, eps_pair, sigma_pair, L, T, f, n_steps, rng, max_displacement=1.5, n_equilibration=0, ch4_positions=None
 ):
-    """GCMC vanaf een lege cel (of ch4_positions). Logt N na elke stap vanaf n_equilibration.
+    """GCMC from an empty cell (or from ch4_positions). Logs N after every step from n_equilibration on.
 
-    Geeft een dict met n_history (productie), ch4_positions (eind), acceptatie per move
-    (geaccepteerd / geprobeerd), en sum_dU: som van alle geaccepteerde dU [K], voor de
-    boekhoudingscheck tegen total_energy.
+    Returns a dict with n_history (production), ch4_positions (final), acceptance per move
+    (accepted / attempted), and sum_dU: the sum of all accepted dU [K], for the bookkeeping
+    check against total_energy.
     """
     if ch4_positions is None:
         ch4_positions = np.empty((0, 3))
@@ -125,7 +124,7 @@ def run_gcmc(
 
 
 def block_average(samples, n_blocks=10):
-    """Gemiddelde en standaardfout via blokgemiddelden (zelfde recept als widom)."""
+    """Mean and standard error from block averages (same recipe as widom)."""
     samples = np.asarray(samples, dtype=float)
     n = len(samples) // n_blocks * n_blocks
     block_means = samples[:n].reshape(n_blocks, -1).mean(axis=1)
@@ -133,13 +132,13 @@ def block_average(samples, n_blocks=10):
 
 
 def molecules_per_cell_to_mol_per_kg(n, masses):
-    """n moleculen per cel -> mol/kg rooster. masses in u."""
+    """n molecules per cell -> mol/kg framework. masses in u."""
     cell_mass_kg = np.sum(masses) * U_TO_KG
     return n / (AVOGADRO * cell_mass_kg)
 
 
 # ---------------------------------------------------------------------------
-# Trage referentie voor de boekhoudingscheck (bewust niet gevectoriseerd, los van energy_fast)
+# Slow reference for the bookkeeping check (deliberately not vectorised, independent of energy_fast)
 # ---------------------------------------------------------------------------
 
 
@@ -158,7 +157,7 @@ def _min_image_distance(a, b, L):
 
 
 def total_energy(ch4_positions, positions, eps_pair, sigma_pair, L):
-    """Totale energie [K]: elk CH4 met elk roosteratoom, plus elk CH4-paar precies een keer."""
+    """Total energy [K]: every CH4 with every framework atom, plus every CH4 pair exactly once."""
     U = 0.0
     for p in ch4_positions:
         for q, eps, sigma in zip(positions, eps_pair, sigma_pair):
@@ -171,7 +170,7 @@ def total_energy(ch4_positions, positions, eps_pair, sigma_pair, L):
 
 
 # ---------------------------------------------------------------------------
-# Druk -> fugaciteit met Peng-Robinson
+# Pressure -> fugacity with Peng-Robinson
 # ---------------------------------------------------------------------------
 
 CH4_TC = 190.56  # K
@@ -180,7 +179,7 @@ CH4_OMEGA = 0.011
 
 
 def fugacity_coefficient(p, T, Tc=CH4_TC, pc=CH4_PC, omega=CH4_OMEGA):
-    """phi = f/p voor een zuiver gas volgens Peng-Robinson (grootste reele wortel = gasfase)."""
+    """phi = f/p for a pure gas from Peng-Robinson (largest real root = gas phase)."""
     kappa = 0.37464 + 1.54226 * omega - 0.26992 * omega**2
     alpha = (1 + kappa * (1 - np.sqrt(T / Tc))) ** 2
     a = 0.45724 * R**2 * Tc**2 / pc * alpha
@@ -195,5 +194,5 @@ def fugacity_coefficient(p, T, Tc=CH4_TC, pc=CH4_PC, omega=CH4_OMEGA):
 
 
 def fugacity(p, T):
-    """Fugaciteit [Pa] van CH4 bij druk p [Pa] en temperatuur T [K]."""
+    """Fugacity [Pa] of CH4 at pressure p [Pa] and temperature T [K]."""
     return p * fugacity_coefficient(p, T)

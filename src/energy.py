@@ -1,7 +1,7 @@
-"""Lennard-Jones energie van een CH4 (united atom) in een rigide MOF.
+"""Lennard-Jones energy of a CH4 (united atom) in a rigid MOF.
 
-Eenheden: eps in K (energie / k_B), sigma en afstanden in A. Dus beta*U = U/T.
-Shifted potential: u(r) - u(r_c) voor r < r_c, 0 daarbuiten. Geen tail correction.
+Units: eps in K (energy / k_B), sigma and distances in A. Hence beta*U = U/T.
+Shifted potential: u(r) - u(r_c) for r < r_c, 0 beyond. No tail correction.
 """
 
 import numpy as np
@@ -9,23 +9,23 @@ import ase.io
 
 
 def load_framework(cif_path):
-    """Lees een CIF en geef (positions [N,3], symbols [N], L, masses [N] in u) terug.
+    """Read a CIF and return (positions [N,3], symbols [N], L, masses [N] in u).
 
-    Alleen kubische cellen.
+    Cubic cells only.
     """
     atoms = ase.io.read(cif_path, format="cif")
     positions = atoms.get_positions()
     symbols = atoms.get_chemical_symbols()
     cell = atoms.cell.lengths()
-    assert np.allclose(cell, cell[0]), f"cel is niet kubisch: {cell}"
+    assert np.allclose(cell, cell[0]), f"cell is not cubic: {cell}"
     masses = atoms.get_masses()
     return positions, symbols, cell[0], masses
 
 
 def load_force_field(ff_path, elements=("O_", "C_", "H_", "Zn_")):
-    """Lees (eps [K], sigma [A]) per element uit een RASPA .def-bestand.
+    """Read (eps [K], sigma [A]) per element from a RASPA .def file.
 
-    Sleutels zonder underscore, zodat ze overeenkomen met de symbolen uit de CIF.
+    Keys without the underscore, so they match the symbols from the CIF.
     """
     lj_params = {}
     with open(ff_path) as f:
@@ -34,34 +34,34 @@ def load_force_field(ff_path, elements=("O_", "C_", "H_", "Zn_")):
             if parts and parts[0] in elements:
                 lj_params[parts[0].rstrip("_")] = (float(parts[2]), float(parts[3]))
     missing = set(e.rstrip("_") for e in elements) - set(lj_params)
-    assert not missing, f"niet gevonden in {ff_path}: {missing}"
+    assert not missing, f"not found in {ff_path}: {missing}"
     return lj_params
 
 
 def lorentz_berthelot(p1, p2):
-    """Mengregels: eps_ij = sqrt(eps_i eps_j), sigma_ij = (sigma_i + sigma_j) / 2."""
+    """Mixing rules: eps_ij = sqrt(eps_i eps_j), sigma_ij = (sigma_i + sigma_j) / 2."""
     eps_1, sigma_1 = p1
     eps_2, sigma_2 = p2
     return ((eps_1 * eps_2) ** 0.5, (sigma_1 + sigma_2) / 2)
 
 
 def pairwise_lj_params(symbols, lj_params, guest):
-    """Per roosteratoom de gemengde (eps, sigma) met de gast. Geeft twee arrays van lengte N."""
+    """Mixed (eps, sigma) with the guest for every framework atom. Returns two arrays of length N."""
     pairs = np.array([lorentz_berthelot(guest, lj_params[s]) for s in symbols])
     assert pairs.shape == (len(symbols), 2)
     return pairs[:, 0], pairs[:, 1]
 
 
 def distances_to_framework(positions, ch4_position, L):
-    """Minimum-image-afstanden van een punt tot alle roosteratomen in een kubische cel."""
+    """Minimum-image distances from one point to all framework atoms in a cubic cell."""
     delta = positions - ch4_position
     delta -= np.round(delta / L) * L
     return np.linalg.norm(delta, axis=1)
 
 
 def energy_fast(ch4_position, positions, eps_pair, sigma_pair, L, cutoff_distance=12.0):
-    """Shifted LJ-energie [K] van een CH4 op ch4_position tegenover het rooster."""
-    assert cutoff_distance < L / 2, "cutoff moet kleiner zijn dan de halve celribbe"
+    """Shifted LJ energy [K] of a CH4 at ch4_position against the framework."""
+    assert cutoff_distance < L / 2, "cutoff must be smaller than half the cell edge"
     distances = distances_to_framework(positions, ch4_position, L)
     mask = distances < cutoff_distance
     d = distances[mask]

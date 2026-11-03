@@ -1,8 +1,8 @@
-"""Student: dezelfde geshifte LJ-som als energy.py, maar met de acht CH4-paarparameters vrij,
-gefit op MACE-interactie-energieen (data/mace_dataset_irmof1_ch4.csv).
+"""Student: the same shifted LJ sum as energy.py, but with the eight CH4 pair parameters free,
+fitted to MACE interaction energies (data/mace_dataset_irmof1_ch4.csv).
 
-Parametervector (plat, zo wil scipy het):
-    params = [eps_Zn, eps_O, eps_C, eps_H, sigma_Zn, sigma_O, sigma_C, sigma_H]   # paren met CH4, K en A
+Parameter vector (flat, as scipy wants it):
+    params = [eps_Zn, eps_O, eps_C, eps_H, sigma_Zn, sigma_O, sigma_C, sigma_H]   # pairs with CH4, K and A
 """
 
 import numpy as np
@@ -17,30 +17,30 @@ UPPER = np.array([500.0] * 4 + [5.0] * 4)
 
 
 def element_indices(symbols):
-    """Per roosteratoom de index in ELEMENTS (Zn 0, O 1, C 2, H 3)."""
+    """Index in ELEMENTS for every framework atom (Zn 0, O 1, C 2, H 3)."""
     return np.array([ELEMENTS.index(s) for s in symbols])
 
 
 def baseline_params(lj_params, guest):
-    """Startvector: Lorentz-Berthelot van elk element met de gast, in de volgorde van PARAM_NAMES."""
+    """Start vector: Lorentz-Berthelot of each element with the guest, in the order of PARAM_NAMES."""
     pairs = [lorentz_berthelot(guest, lj_params[e]) for e in ELEMENTS]
     return np.array([p[0] for p in pairs] + [p[1] for p in pairs])
 
 
 def params_to_pairs(params, element_index):
-    """Acht paarparameters -> (eps_pair, sigma_pair), elk van lengte len(element_index)."""
+    """Eight pair parameters -> (eps_pair, sigma_pair), each of length len(element_index)."""
     params = np.asarray(params, dtype=float)
     return params[0:4][element_index], params[4:8][element_index]
 
 
 def student_energies(params, dataset_positions, positions, element_index, L):
-    """Studentenergie [K] op alle dataset-posities voor een parametervector."""
+    """Student energy [K] at all dataset positions for one parameter vector."""
     eps_pair, sigma_pair = params_to_pairs(params, element_index)
     return np.array([energy_fast(pos, positions, eps_pair, sigma_pair, L) for pos in dataset_positions])
 
 
 def residuals(params, dataset_positions, positions, element_index, L, E_target, weights=None):
-    """sqrt(w) * (E_student - E_target); least_squares kwadrateert zelf, dus de kost is sum w (dE)^2."""
+    """sqrt(w) * (E_student - E_target); least_squares squares it, so the cost is sum w (dE)^2."""
     diff = student_energies(params, dataset_positions, positions, element_index, L) - E_target
     if weights is None:
         return diff
@@ -48,12 +48,12 @@ def residuals(params, dataset_positions, positions, element_index, L, E_target, 
 
 
 def boltzmann_weights(E_target, T_w):
-    """Afgevlakte Boltzmann-gewichten exp(-E/T_w). T_w > T maakt de weging minder extreem."""
+    """Softened Boltzmann weights exp(-E/T_w). T_w > T makes the weighting less extreme."""
     return np.exp(-np.asarray(E_target) / T_w)
 
 
 def fit_student(params_start, dataset_positions, positions, element_index, L, E_target, weights=None):
-    """least_squares met grenzen; geeft het scipy-resultaat (x, cost, nfev, message)."""
+    """least_squares with bounds; returns the scipy result (x, cost, nfev, message)."""
     return least_squares(
         residuals,
         params_start,

@@ -130,7 +130,6 @@ with the student and 6–12 GPU-hours with MACE.
   are probably too strong against experiment (Q_st ≈ 12 kJ/mol). The question here is whether the student
   reproduces the teacher, not whether the teacher is right.
 - Cutoff 12 Å with shift, no tail correction; 10^5 production steps give a 2% error bar at 40 bar.
-- One dataset, one seed, no held-out test set beyond the fresh Widom run.
 
 ## Next steps
 
