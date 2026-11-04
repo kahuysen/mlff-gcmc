@@ -136,9 +136,7 @@ with the student and 6–12 GPU-hours with MACE.
 - Isotherm with the student via GCMC (same code, student parameter arrays; the cost is the same as the baseline).
 - Active learning: sample the deep-well regions and the large-residual regions, label with MACE, refit.
 - A small MLP (positions → energy) as a second student, to see whether the LJ form is the bottleneck.
-- Grid pre-tabulation of the framework energy with trilinear interpolation (Frenkel & Smit appendix I), another
-  10–100× in throughput.
-- CO2 with Ewald; Dubbeldam 2007 as a second, MOF-specific baseline.
+
 
 ## Reproduce
 
