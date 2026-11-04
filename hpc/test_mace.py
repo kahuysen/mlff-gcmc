@@ -1,6 +1,6 @@
 """Task 5: energy of the empty IRMOF-1 cell with MACE-MP-0 medium + D3 on the GPU, and the time per evaluation.
 
-Run on the HPC:  module swap cluster/joltik && cd $VSC_DATA/cusp-mace && sbatch run_gpu_joltik.sh test_mace.py
+Run on the HPC:  module swap cluster/joltik && cd $VSC_DATA/mlff-gcmc && sbatch run_gpu_joltik.sh test_mace.py
 (or accelgor with run_gpu.sh; on 2 Nov joltik had a 3 min queue, accelgor 3.5 h)
 """
 import os
@@ -23,7 +23,7 @@ def reset_all(calc):
         reset_all(sub)
 
 
-cif = os.path.join(os.environ["VSC_DATA"], "cusp-mace", "data", "IRMOF-1.cif")
+cif = os.path.join(os.environ["VSC_DATA"], "mlff-gcmc", "data", "IRMOF-1.cif")
 atoms = ase.io.read(cif, format="cif")
 print(f"{len(atoms)} atoms, cell {atoms.cell.lengths().round(3)} A, pbc {atoms.pbc}")
 

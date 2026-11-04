@@ -1,6 +1,6 @@
 """Task 6: MACE dataset of CH4 interaction energies in the empty IRMOF-1 cell.
 
-HPC:   module swap cluster/joltik && cd $VSC_DATA/cusp-mace && \
+HPC:   module swap cluster/joltik && cd $VSC_DATA/mlff-gcmc && \
        sbatch --time=02:00:00 run_gpu_joltik.sh make_dataset.py --n 3000 --seed 6 --out mace_dataset.csv
 Local (pipeline test without torch):  python hpc/make_dataset.py --calc lj --n 20 --out /tmp/test.csv
 
